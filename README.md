@@ -1,4 +1,4 @@
-# kwasonatorTV
+# kwasonator
 
 Requirements:
 Qt 5
