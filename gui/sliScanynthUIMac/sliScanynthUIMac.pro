@@ -41,6 +41,7 @@ mac {
 
 SOURCES += \
     ../../src/buffer.cpp \
+    ../../src/circvidbuffer.cpp \
     ../../src/logger.cpp \
     ../../src/processMod.cpp \
     ../../src/slitScan.cpp \
@@ -51,8 +52,8 @@ SOURCES += \
 
 HEADERS += \
     ../../src/buffer.h \
+    ../../src/circvidbuffer.h \
     ../../src/logger.h \
-    ../../src/mathDefs.h \
     ../../src/processMod.h \
     ../../src/slitScan.h \
     mainwindow.h \

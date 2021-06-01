@@ -20,13 +20,14 @@ using namespace std;
 using namespace cv;
 
 Synthesizer::Synthesizer(std::unique_ptr<cv::VideoCapture> input, std::unique_ptr<cv::VideoWriter> output):
-    m_inputSt{move(input)},
+    m_inputFileSt{move(input)},
     m_outputSt{move(output)},
-    m_frameWidth{},
-    m_frameHeight{},
+    m_frameWidth{1920},
+    m_frameHeight{1080},
     m_filterSize{3, 3, 32},
-    m_fps{},
-    m_frameIn{},
+    m_fps{25},
+    m_frameFileIn{},
+    m_frameCamIn{},
     m_frameOut{},
     m_inputBuff{make_shared<Buffer>(1, 3)},
     m_outputBuff{make_shared<Buffer>(1, 3)},
@@ -45,17 +46,27 @@ Synthesizer::~Synthesizer()
 {
 }
 
-void Synthesizer::setInputStream(std::unique_ptr<cv::VideoCapture> input)
+void Synthesizer::setInputFileStream(std::unique_ptr<cv::VideoCapture> input)
 {
   if (!isRunning())
   {
-    m_inputSt = move(input);
-    m_frameWidth = static_cast<int>(m_inputSt->get(CAP_PROP_FRAME_WIDTH));
-    m_frameHeight = static_cast<int>(m_inputSt->get(CAP_PROP_FRAME_HEIGHT));
-    m_fps = static_cast<int>(m_inputSt->get(CAP_PROP_FPS));
+    m_inputFileSt = move(input);
+    m_frameWidth = static_cast<int>(m_inputFileSt->get(CAP_PROP_FRAME_WIDTH));
+    m_frameHeight = static_cast<int>(m_inputFileSt->get(CAP_PROP_FRAME_HEIGHT));
+    m_fps = static_cast<int>(m_inputFileSt->get(CAP_PROP_FPS));
     cout<<m_frameWidth<<" "<<m_frameHeight<<" "<<m_fps<<endl;
     m_frameOut = Mat{static_cast<int>(m_frameHeight), static_cast<int>(m_frameWidth), CV_8UC3, cv::Scalar(0,0,0)};
   }
+}
+
+void Synthesizer::setInputCamStream(std::unique_ptr<cv::VideoCapture> input)
+{
+    m_inputCamSt = move(input);
+    m_frameWidth = static_cast<int>(m_inputCamSt->get(CAP_PROP_FRAME_WIDTH));
+    m_frameHeight = static_cast<int>(m_inputCamSt->get(CAP_PROP_FRAME_HEIGHT));
+    m_fps = static_cast<int>(m_inputCamSt->get(CAP_PROP_FPS));
+    cout<<m_frameWidth<<" "<<m_frameHeight<<" "<<m_fps<<endl;
+    m_frameOut = Mat{static_cast<int>(m_frameHeight), static_cast<int>(m_frameWidth), CV_8UC3, cv::Scalar(0,0,0)};
 }
 
 void Synthesizer::setOutputStream(std::unique_ptr<cv::VideoWriter> output)
@@ -145,24 +156,100 @@ void Synthesizer::setBlueGain(uint8_t att)
   m_rtParams->updated = true;
 }
 
-/*
- * Intermediate method, with internal loop, no external module architecture
- */
+patchbayLogic& Synthesizer::registerPatchbayLogic()
+{
+  return m_patchLogic;
+}
+
+
 void Synthesizer::processLoop()
 {
-  LOG("Synthesizer::processLoop() intro");
+  LOG("intro");
   bool allowNewFrame = true;
   Mat tempFrame;
+  Mat dstFile, dstTransIn, dstCh1, dstCh2, dstCh3, dstCh4;
   for(;;)
   {
     if (!m_procVideo) { break;}
-    auto start = std::chrono::system_clock::now();
+
 
     if (allowNewFrame)
     {
-      *m_inputSt >> m_frameIn;
-      if (m_frameIn.empty()) {break;}
-      if (!m_inputBuff->pushMultiChanFrame(m_frameIn))
+      auto start = std::chrono::system_clock::now();
+      if (isCamDevOpened() && (m_patchLogic.device.cam))
+      {
+        cv::Mat temp;
+        *m_inputCamSt >> temp;
+        Size sz{static_cast<int>(m_frameWidth), static_cast<int>(m_frameHeight)};
+        resize(temp, m_frameCamIn, sz, 0, 0);
+        if (m_patchLogic.connect.camToFile)
+        {
+          dstFile = m_frameCamIn;
+        }
+        if (m_patchLogic.connect.camToTransIn)
+        {
+          dstTransIn = m_frameCamIn;
+        }
+        if (m_patchLogic.connect.camToCh1)
+        {
+          dstCh1 = m_frameCamIn;
+        }
+        if (m_patchLogic.connect.camToCh2)
+        {
+          dstCh2 = m_frameCamIn;
+        }
+        if (m_patchLogic.connect.camToCh3)
+        {
+          dstCh3 = m_frameCamIn;
+        }
+        if (m_patchLogic.connect.camToCh4)
+        {
+          dstCh4 = m_frameCamIn;
+        }
+        if (m_patchLogic.connect.camToScreen)
+        {
+           m_display(m_frameCamIn);
+        }
+      }
+      auto end = std::chrono::system_clock::now();
+      auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+      cout<<"ms per frame cam: "+to_string(elapsed.count())<<endl;
+      start = std::chrono::system_clock::now();
+      if ((m_inputFileSt != nullptr) && m_inputFileSt->isOpened())
+      {
+        *m_inputFileSt >> m_frameFileIn;
+        cout<<"stream is opened"<<endl;
+        if (m_patchLogic.connect.fileToTransIn)
+        {
+           cout<<"fileToTransIn"<<endl;
+           dstTransIn = m_frameFileIn;
+        }
+        if (m_patchLogic.connect.fileToCh1)
+        {
+           dstCh1 = dstCh1 + m_frameFileIn;
+        }
+        if (m_patchLogic.connect.fileToCh2)
+        {
+           dstCh2 = dstCh2 + m_frameFileIn;
+        }
+        if (m_patchLogic.connect.fileToCh3)
+        {
+           dstCh3 = dstCh3 + m_frameFileIn;
+        }
+        if (m_patchLogic.connect.fileToCh4)
+        {
+           dstCh4 = dstCh4 + m_frameFileIn;
+        }
+        if (m_patchLogic.connect.fileToScreen)
+        {
+           m_display(m_frameFileIn);
+        }
+      }
+      end = std::chrono::system_clock::now();
+      elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+      cout<<"ms per frame file: "+to_string(elapsed.count())<<endl;
+      if (dstTransIn.empty()) {break;}
+      if (!m_inputBuff->pushMultiChanFrame(dstTransIn))
       {
         allowNewFrame = false;
       }
@@ -170,31 +257,61 @@ void Synthesizer::processLoop()
     }
     else
     {
-      if (!m_inputBuff->pushMultiChanFrame(m_frameIn))
+      if (!m_inputBuff->pushMultiChanFrame(dstTransIn))
       {
         allowNewFrame = false;
       }
       else allowNewFrame = true;
     }
 
-    Mat tempOutFrame;
+    //TransOut mux
     if (m_outputBuff->pullMultiChanFrame(m_frameOut))
     {
-      m_display(m_frameOut);
-      *m_outputSt<<m_frameOut;
+        if (m_patchLogic.connect.transOutToFile)
+        {
+          cout<<"!!missing frame output"<<endl;
+          *m_outputSt<<m_frameOut;
+        }
+        if (m_patchLogic.connect.transOutToCh1)
+        {
+          m_ch1<<m_frameOut;
+        }
+        if (m_patchLogic.connect.transOutToCh2)
+        {
+          m_ch2<<m_frameOut;
+        }
+        if (m_patchLogic.connect.transOutToCh3)
+        {
+          m_ch3<<m_frameOut;
+        }
+        if (m_patchLogic.connect.transOutToCh4)
+        {
+          m_ch4<<m_frameOut;
+        }
+        if (m_patchLogic.connect.transOutToScreen)
+        {
+          m_display(m_frameOut);
+        }
     }
-    auto end = std::chrono::system_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    LOG("ms per frame: "+to_string(elapsed.count()));
+
+    //file mux
+
+
   }
   m_process.processStop();
   m_procVideo = false;
   LOG("m_procVideo  "+to_string(m_procVideo));
-  LOG("Synthesizer::processLoop() finito");
+  LOG("finito");
 }
 
 void Synthesizer::registerDisplay(std::function<void(cv::Mat&)> callback)
 {
     m_display = callback;
+}
+
+bool Synthesizer::isCamDevOpened()
+{
+    if (m_inputFileSt->isOpened() && (m_inputCamSt != nullptr)) return true;
+    return false;
 }
 

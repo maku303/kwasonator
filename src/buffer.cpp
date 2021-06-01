@@ -132,7 +132,6 @@ bool Buffer::pullMultiChanFrame(cv::Mat& frame)
   if (isHalfReady(m_buff1State) && (!isFirstActiveHalf()))
   {
     switchHalf();
-    LOG("czy to tutaj sie zzjebalo");
     for (size_t i = 0; i < m_chanSize; ++i)
     {
       pullFrame(tempVec[i], i, true);
@@ -143,7 +142,6 @@ bool Buffer::pullMultiChanFrame(cv::Mat& frame)
   else if (isHalfReady(m_buff2State) && (isFirstActiveHalf()))
   {
     switchHalf();
-    LOG("czy to tutaj sie zzjebalo2");
     for (size_t i = 0; i < m_chanSize; ++i)
     {
       pullFrame(tempVec[i], i, false);
@@ -159,7 +157,6 @@ bool Buffer::pullMultiChanFrame(vector<cv::Mat>& frame)
   if (isHalfReady(m_buff1State) && (!isFirstActiveHalf()))
   {
     switchHalf();
-    LOG("czy to tutaj sie zzjebalo");
     for (size_t i = 0; i < m_chanSize; ++i)
     {
       pullFrame(frame[i], i, true);

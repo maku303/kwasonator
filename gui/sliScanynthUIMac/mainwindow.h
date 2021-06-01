@@ -51,14 +51,62 @@ private slots:
 
     void on_verticalSlider_forgottenFactor_valueChanged(int value);
 
+    void on_checkBox_CamToFile_toggled(bool checked);
+
+    void on_checkBox_CamToTransIn_toggled(bool checked);
+
+    void on_checkBox_CamToCh1_toggled(bool checked);
+
+    void on_checkBox_FileToTransIn_toggled(bool checked);
+
+    void on_checkBox_FileToCh1_toggled(bool checked);
+
+    void on_checkBox_FileToCh2_toggled(bool checked);
+
+    void on_checkBox_FileToCh3_toggled(bool checked);
+
+    void on_checkBox_TransOutToFile_toggled(bool checked);
+
+    void on_checkBox_FileToCh4_toggled(bool checked);
+
+    void on_checkBox_TransOutToCh1_toggled(bool checked);
+
+    void on_checkBox_TransOutToCh2_toggled(bool checked);
+
+    void on_checkBox_TransOutToCh3_toggled(bool checked);
+
+    void on_checkBox_TransOutToCh4_toggled(bool checked);
+
+    void on_checkBox_PatternToFile_toggled(bool checked);
+
+    void on_checkBox_PatternToTransIn_toggled(bool checked);
+
+    void on_checkBox_PatternToCh1_toggled(bool checked);
+
+    void on_checkBox_PatternToCh2_toggled(bool checked);
+
+    void on_checkBox_PatternToCh3_toggled(bool checked);
+
+    void on_checkBox_PatternToCh4_toggled(bool checked);
+
+    void on_checkBox_CamToScreen_toggled(bool checked);
+
+    void on_checkBox_FileToScreen_toggled(bool checked);
+
+    void on_checkBox_TransOutToScreen_toggled(bool checked);
+
+    void on_listWidget_currentRowChanged(int currentRow);
+
+    bool initCam();
+
 private:
     Ui::MainWindow *ui;
     Synthesizer* m_synth;
     cv::Mat m_maskImage;
-    cv::VideoCapture m_vidCapture;
-    cv::VideoWriter m_vidWriter;
+    patchbayLogic& m_patchbayLog;
     int m_capWidth;
     int m_capHeight;
+    int m_capFps;
 };
 
 class Display

@@ -34,7 +34,6 @@ SlitScan::~SlitScan()
 
 void SlitScan::initParams(size_t height, size_t width, size_t* filterSize)
 {
-    LOG("begin");
     m_height = height;
     m_width = width;
     m_filterSize[0] = filterSize[0];
@@ -68,23 +67,19 @@ void SlitScan::initParams(size_t height, size_t width, size_t* filterSize)
       m_delayFiltMask[2][i] = initMat.clone();
     }
     //recalcMask();
-    LOG("end");
 }
 
 void SlitScan::processStart()
 {
-  LOG("intro");
   m_procBusy = true;
   m_proc.push_back(make_shared<thread>(thread{&SlitScan::process, this, 0}));
   m_proc.push_back(make_shared<thread>(thread{&SlitScan::process, this, 1}));
   m_proc.push_back(make_shared<thread>(thread{&SlitScan::process, this, 2}));
   m_collectProc = make_shared<thread>(thread{&SlitScan::frameCollector, this});
-  LOG("finito");
 }
 
 void SlitScan::processStop()
 {
-  LOG("intro");
   m_procBusy = false;
   for (size_t i = 0; i < m_proc.size(); ++i)
   {
@@ -95,7 +90,6 @@ void SlitScan::processStop()
   m_dataProcessed = 0x7;
   m_currentInFrame = vector<cv::Mat>(3);
   m_currentOutFrame = vector<cv::Mat>(3);
-  LOG("finito");
 }
 
 void SlitScan::process(size_t ind)
