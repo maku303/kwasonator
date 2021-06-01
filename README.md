@@ -1,6 +1,6 @@
 # kwasonator
 
-Synthesizer for video processing 
+Synthesizer with QT GUI for video processing 
 
 ## Requirements:
 Qt 5
